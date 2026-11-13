@@ -1,6 +1,15 @@
 name: Renderizar cena de referencia
 on:
   workflow_dispatch:
+    inputs:
+      qualidade:
+        description: "Qualidade do video"
+        required: true
+        type: choice
+        default: "720p-24fps"
+        options:
+          - "540p-12fps"
+          - "720p-24fps"
 permissions:
   contents: read
 jobs:
@@ -16,18 +25,38 @@ jobs:
         run: |
           pip install playwright==1.56.0
           python -m playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Selecionar qualidade
+        id: quality
+        env:
+          QUALITY: ${{ inputs.qualidade }}
+        run: |
+          if [ "$QUALITY" = "540p-12fps" ]; then
+            echo "WIDTH=540" >> "$GITHUB_ENV"
+            echo "HEIGHT=960" >> "$GITHUB_ENV"
+            echo "FPS=12" >> "$GITHUB_ENV"
+          else
+            echo "WIDTH=720" >> "$GITHUB_ENV"
+            echo "HEIGHT=1280" >> "$GITHUB_ENV"
+            echo "FPS=24" >> "$GITHUB_ENV"
+          fi
+          echo "DURATION=12" >> "$GITHUB_ENV"
       - name: Capturar quadros
         run: |
           python -m http.server 8000 >/tmp/server.log 2>&1 &
           python render.py
-      - name: Instalar FFmpeg
+      - name: Gerar video e medir tempo
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-      - name: Gerar video
-        run: ffmpeg -y -framerate 12 -i frames/%05d.png -c:v libx264 -pix_fmt yuv420p -crf 24 -movflags +faststart cronicas_teste.mp4
+          START=$(date +%s)
+          ffmpeg -y -framerate "$FPS" -i frames/%05d.png -c:v libx264 -preset veryfast -pix_fmt yuv420p -crf 24 -movflags +faststart cronicas_teste.mp4
+          END=$(date +%s)
+          echo "Conversao FFmpeg: $((END-START))s" | tee -a captura_tempo.txt
+          ls -lh cronicas_teste.mp4 | tee -a captura_tempo.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: cronicas-primeiro-video
-          path: cronicas_teste.mp4
+          name: cronicas-video-e-medicoes
+          path: |
+            cronicas_teste.mp4
+            captura_tempo.txt
           retention-days: 7
