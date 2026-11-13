@@ -1,0 +1,29 @@
+name: Renderizar cena de referencia
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Capturar quadros
+        run: |
+          python -m http.server 8000 >/tmp/server.log 2>&1 &
+          python render.py
+      - name: Gerar video
+        run: ffmpeg -y -framerate 12 -i frames/%05d.png -c:v libx264 -pix_fmt yuv420p -crf 24 -movflags +faststart cronicas_teste.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cronicas-primeiro-video
+          path: cronicas_teste.mp4
+          retention-days: 7
