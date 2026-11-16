@@ -1,0 +1,372 @@
+{
+  "version": 1,
+  "model": "Cronicas-render",
+  "marks": {
+    "2": [
+      {
+        "mesh": 1,
+        "face": 252
+      },
+      {
+        "mesh": 1,
+        "face": 235
+      },
+      {
+        "mesh": 1,
+        "face": 228
+      },
+      {
+        "mesh": 1,
+        "face": 232
+      },
+      {
+        "mesh": 1,
+        "face": 253
+      },
+      {
+        "mesh": 1,
+        "face": 236
+      },
+      {
+        "mesh": 1,
+        "face": 229
+      },
+      {
+        "mesh": 1,
+        "face": 230
+      },
+      {
+        "mesh": 1,
+        "face": 213
+      },
+      {
+        "mesh": 1,
+        "face": 238
+      },
+      {
+        "mesh": 1,
+        "face": 251
+      },
+      {
+        "mesh": 1,
+        "face": 231
+      },
+      {
+        "mesh": 1,
+        "face": 226
+      },
+      {
+        "mesh": 1,
+        "face": 227
+      },
+      {
+        "mesh": 1,
+        "face": 150
+      },
+      {
+        "mesh": 1,
+        "face": 149
+      },
+      {
+        "mesh": 1,
+        "face": 219
+      },
+      {
+        "mesh": 1,
+        "face": 216
+      },
+      {
+        "mesh": 1,
+        "face": 203
+      },
+      {
+        "mesh": 1,
+        "face": 202
+      },
+      {
+        "mesh": 1,
+        "face": 217
+      },
+      {
+        "mesh": 1,
+        "face": 259
+      },
+      {
+        "mesh": 1,
+        "face": 214
+      },
+      {
+        "mesh": 1,
+        "face": 205
+      },
+      {
+        "mesh": 1,
+        "face": 223
+      },
+      {
+        "mesh": 1,
+        "face": 152
+      },
+      {
+        "mesh": 1,
+        "face": 222
+      },
+      {
+        "mesh": 1,
+        "face": 260
+      },
+      {
+        "mesh": 1,
+        "face": 257
+      },
+      {
+        "mesh": 1,
+        "face": 258
+      },
+      {
+        "mesh": 1,
+        "face": 261
+      },
+      {
+        "mesh": 1,
+        "face": 255
+      },
+      {
+        "mesh": 1,
+        "face": 263
+      },
+      {
+        "mesh": 1,
+        "face": 262
+      },
+      {
+        "mesh": 1,
+        "face": 237
+      },
+      {
+        "mesh": 1,
+        "face": 234
+      },
+      {
+        "mesh": 1,
+        "face": 233
+      },
+      {
+        "mesh": 1,
+        "face": 225
+      },
+      {
+        "mesh": 1,
+        "face": 221
+      },
+      {
+        "mesh": 1,
+        "face": 218
+      },
+      {
+        "mesh": 1,
+        "face": 224
+      },
+      {
+        "mesh": 1,
+        "face": 204
+      },
+      {
+        "mesh": 1,
+        "face": 212
+      },
+      {
+        "mesh": 1,
+        "face": 208
+      },
+      {
+        "mesh": 1,
+        "face": 220
+      },
+      {
+        "mesh": 1,
+        "face": 264
+      },
+      {
+        "mesh": 2,
+        "face": 307
+      },
+      {
+        "mesh": 2,
+        "face": 302
+      },
+      {
+        "mesh": 2,
+        "face": 297
+      },
+      {
+        "mesh": 2,
+        "face": 290
+      },
+      {
+        "mesh": 2,
+        "face": 308
+      },
+      {
+        "mesh": 2,
+        "face": 289
+      },
+      {
+        "mesh": 2,
+        "face": 391
+      },
+      {
+        "mesh": 2,
+        "face": 392
+      },
+      {
+        "mesh": 2,
+        "face": 421
+      },
+      {
+        "mesh": 2,
+        "face": 305
+      },
+      {
+        "mesh": 2,
+        "face": 422
+      },
+      {
+        "mesh": 2,
+        "face": 428
+      },
+      {
+        "mesh": 2,
+        "face": 427
+      },
+      {
+        "mesh": 2,
+        "face": 424
+      },
+      {
+        "mesh": 2,
+        "face": 397
+      },
+      {
+        "mesh": 2,
+        "face": 429
+      },
+      {
+        "mesh": 2,
+        "face": 401
+      },
+      {
+        "mesh": 2,
+        "face": 415
+      },
+      {
+        "mesh": 2,
+        "face": 419
+      },
+      {
+        "mesh": 2,
+        "face": 423
+      },
+      {
+        "mesh": 2,
+        "face": 426
+      },
+      {
+        "mesh": 2,
+        "face": 425
+      },
+      {
+        "mesh": 2,
+        "face": 413
+      },
+      {
+        "mesh": 2,
+        "face": 409
+      },
+      {
+        "mesh": 2,
+        "face": 414
+      },
+      {
+        "mesh": 2,
+        "face": 411
+      },
+      {
+        "mesh": 2,
+        "face": 389
+      },
+      {
+        "mesh": 2,
+        "face": 396
+      },
+      {
+        "mesh": 2,
+        "face": 395
+      },
+      {
+        "mesh": 2,
+        "face": 377
+      },
+      {
+        "mesh": 2,
+        "face": 420
+      },
+      {
+        "mesh": 2,
+        "face": 384
+      },
+      {
+        "mesh": 2,
+        "face": 390
+      },
+      {
+        "mesh": 2,
+        "face": 386
+      },
+      {
+        "mesh": 2,
+        "face": 383
+      },
+      {
+        "mesh": 2,
+        "face": 378
+      },
+      {
+        "mesh": 2,
+        "face": 385
+      },
+      {
+        "mesh": 2,
+        "face": 388
+      },
+      {
+        "mesh": 2,
+        "face": 406
+      },
+      {
+        "mesh": 2,
+        "face": 398
+      },
+      {
+        "mesh": 2,
+        "face": 399
+      },
+      {
+        "mesh": 2,
+        "face": 393
+      },
+      {
+        "mesh": 2,
+        "face": 394
+      },
+      {
+        "mesh": 2,
+        "face": 400
+      },
+      {
+        "mesh": 2,
+        "face": 408
+      }
+    ]
+  }
+}
