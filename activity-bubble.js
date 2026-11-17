@@ -21,6 +21,7 @@ export function createActivityBubble(scene){
  let elapsed=0,active=false,done=false,activity='mining';
  function start(x,z,kind='mining'){activity=kind;root.position.set(x,0,z);root.visible=true;elapsed=0;active=true;done=false;rock.visible=kind==='mining';tool.visible=kind!=='furniture';head.geometry.dispose();head.geometry=kind==='wood'?new T.BoxGeometry(.46,.35,.14):new T.BoxGeometry(.42,.22,.17);head.material.color.setHex(kind==='wood'?0xaab4b9:0x84929b)}
  function stop(){active=false;root.visible=false}
+ function reset(){stop();done=false;elapsed=0}
  function update(dt,x,z){
   if(!active)return false;
   elapsed+=Math.min(dt,.06);root.position.set(x,0,z);
@@ -38,7 +39,7 @@ export function createActivityBubble(scene){
   for(let i=0;i<chunks.length;i++){const c=chunks[i],a=i*2.4+elapsed*3;c.visible=activity==='mining';c.position.set(.85+Math.cos(a)*(.3+elapsed%1*.3),.45+Math.abs(Math.sin(elapsed*4+i))*.9,.15+Math.sin(a)*.45);c.scale.setScalar(alpha*(.65+.35*Math.sin(elapsed*5+i)**2))}
   if(elapsed>=6.5){stop();done=true;return true}return false
  }
- return {root,start,stop,update,get active(){return active},get completed(){return done}};
+ return {root,start,stop,reset,update,get active(){return active},get completed(){return done}};
 }
 
 // Resultados persistentes: aparecem ao lado do pioneiro apos a bolha dissipar.
