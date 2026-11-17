@@ -50,10 +50,11 @@ loadPioneer('/tripo_convert_16d597ae-88d9-4998-903d-45cfb918c602.glb');
 let arrivalStart=0,arrivalActive=false,action='idle',actionStart=0,actionDuration=26;
 const rigTemp=new T.Quaternion();
 function bend(name,x=0,z=0){const joint=boneRig?.[name];if(!joint)return;joint.bone.quaternion.copy(joint.rest);if(x)joint.bone.quaternion.multiply(rigTemp.setFromAxisAngle(joint.pitchAxis,x));if(z)joint.bone.quaternion.multiply(rigTemp.setFromAxisAngle(joint.rollAxis,z))}
-function pose(t,mode,phase){if(!boneRig)return;const moving=mode==='walk'||mode==='run'||mode==='arrival',fast=mode==='run',pickup=mode==='pickup',s=moving?Math.sin(phase):0,c=moving?Math.cos(phase):0,amp=fast?.72:.44;
+function pose(t,mode,phase){if(!boneRig)return;const moving=mode==='walk'||mode==='run'||mode==='arrival',fast=mode==='run',pickup=mode==='pickup',s=moving?Math.sin(phase):0,c=moving?Math.cos(phase):0,amp=fast?.58:.34;
 bend('L_Thigh',s*amp);bend('R_Thigh',-s*amp);
-bend('L_Calf',moving?Math.max(0,-s)*(.48+(fast?.3:0)):pickup?-.85:0);
-bend('R_Calf',moving?Math.max(0,s)*(.48+(fast?.3:0)):pickup?-.85:0);
+// Joelhos dobram somente no sentido anatomico; evita hiperextensao e giro de 180 graus.
+bend('L_Calf',moving?-Math.max(0,-s)*(fast?.62:.38):0);
+bend('R_Calf',moving?-Math.max(0,s)*(fast?.62:.38):0);
 bend('L_Upperarm',moving?-s*(fast?.75:.48):pickup?-.85:0);
 bend('R_Upperarm',moving?s*(fast?.75:.48):pickup?-.85:0);
 bend('L_Forearm',pickup?-1.05:moving?-.18:0);
@@ -75,7 +76,7 @@ else if(action==='walk'||action==='run'){const distance=(elapsed*speed)%40;pione
 else if(action==='pickup'&&elapsed>3.6){action='idle';document.getElementById('msg').textContent='Objeto recolhido • animação concluída'}
 const picking=action==='pickup',pickProgress=picking?Math.min(1,elapsed/3.6):0,pickWeight=picking?Math.sin(pickProgress*Math.PI)**2:0;
 pose(t,action,phase);
-if(picking&&boneRig){bend('L_Thigh',pickWeight*.7);bend('R_Thigh',pickWeight*.7);bend('L_Calf',-pickWeight*.9);bend('R_Calf',-pickWeight*.9);bend('Spine01',pickWeight*.65);bend('Spine02',pickWeight*.2);bend('L_Upperarm',-pickWeight*.95);bend('R_Upperarm',-pickWeight*.95);bend('L_Forearm',-pickWeight*.9);bend('R_Forearm',-pickWeight*.9)}
+if(picking&&boneRig){bend('L_Thigh',pickWeight*.7);bend('R_Thigh',pickWeight*.7);bend('L_Calf',-pickWeight*.58);bend('R_Calf',-pickWeight*.58);bend('Spine01',pickWeight*.65);bend('Spine02',pickWeight*.2);bend('L_Upperarm',-pickWeight*.95);bend('R_Upperarm',-pickWeight*.95);bend('L_Forearm',-pickWeight*.9);bend('R_Forearm',-pickWeight*.9)}
 pioneer.rotation.y=-Math.PI/2;pioneer.position.y=isMoving?Math.abs(Math.sin(phase))*(action==='run'?.14:.065):0;
 const swing=isMoving?Math.sin(phase)*.5:0;arms[0].rotation.x=detailedPioneer?0:swing;arms[1].rotation.x=detailedPioneer?0:-swing;legs[0].rotation.x=detailedPioneer?0:-swing;legs[1].rotation.x=detailedPioneer?0:swing;
 }
