@@ -35,7 +35,7 @@ export function createActivityBubble(scene){
   }
   for(let i=0;i<flecks.length;i++){const p=flecks[i],a=i*2.4+elapsed*(1.8+i%3*.2);p.position.set(Math.cos(a)*(1.1+i%4*.1),.35+(elapsed*.8+i*.23)%2.1,Math.sin(a)*(1.1+i%4*.1));p.scale.setScalar(alpha*(.65+i%3*.2));p.material.opacity=alpha*.8}
   tool.visible=activity!=='furniture';tool.position.set(Math.sin(elapsed*6)*.85,1.2+Math.sin(elapsed*11)*.32,Math.cos(elapsed*6)*.4);tool.rotation.set(0,elapsed*3,Math.sin(elapsed*8)*.65);tool.scale.setScalar(alpha*(Math.sin(elapsed*5)>-.25?1:.18));
-  for(let i=0;i<chunks.length;i++){const c=chunks[i];c.visible=activity==='mining',a=i*2.4+elapsed*3;c.position.set(.85+Math.cos(a)*(.3+elapsed%1*.3),.45+Math.abs(Math.sin(elapsed*4+i))*.9,.15+Math.sin(a)*.45);c.scale.setScalar(alpha*(.65+.35*Math.sin(elapsed*5+i)**2))}
+  for(let i=0;i<chunks.length;i++){const c=chunks[i],a=i*2.4+elapsed*3;c.visible=activity==='mining';c.position.set(.85+Math.cos(a)*(.3+elapsed%1*.3),.45+Math.abs(Math.sin(elapsed*4+i))*.9,.15+Math.sin(a)*.45);c.scale.setScalar(alpha*(.65+.35*Math.sin(elapsed*5+i)**2))}
   if(elapsed>=6.5){stop();done=true;return true}return false
  }
  return {root,start,stop,update,get active(){return active},get completed(){return done}};
