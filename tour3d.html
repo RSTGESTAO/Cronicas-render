@@ -69,17 +69,20 @@ let arrivalStart=0,arrivalActive=false,action='idle',actionStart=0,actionDuratio
  ec.lineWidth=8;ec.beginPath();ec.moveTo(105,183);ec.quadraticCurveTo(128,163,151,183);ec.stroke();
  ec.fillStyle='#c17e68';ec.beginPath();ec.ellipse(46,161,10,7,0,0,Math.PI*2);ec.ellipse(210,161,10,7,0,0,Math.PI*2);ec.fill();
  const effortTexture=new T.CanvasTexture(effortCanvas);effortTexture.colorSpace=T.SRGBColorSpace;
- const effortFace=new T.Sprite(new T.SpriteMaterial({map:effortTexture,transparent:true,depthWrite:false,depthTest:true}));
+ const effortFace=new T.Sprite(new T.SpriteMaterial({map:effortTexture,transparent:true,depthWrite:false,depthTest:false}));
  effortFace.scale.set(.77,.77,1);effortFace.visible=false;effortFace.renderOrder=8;scene.add(effortFace);
  const effortHeadWorld=new T.Vector3(),effortFacing=new T.Vector3();
  function updateEffortFace(){
   const working=activityKinds.includes(action)&&activityBubble.active;
+  effortFace.visible=working;
+  if(!working)return;
+  // Alguns GLBs nao possuem osso chamado Head. Usa a altura do pioneiro como fallback.
+  pioneer.getWorldPosition(effortHeadWorld);
+  effortHeadWorld.y+=2.49;
   const headBone=boneRig?.Head?.bone;
-  effortFace.visible=Boolean(working&&headBone);
-  if(!effortFace.visible)return;
-  headBone.getWorldPosition(effortHeadWorld);
+  if(headBone)headBone.getWorldPosition(effortHeadWorld);
   effortFacing.copy(camera.position).sub(effortHeadWorld).normalize();
-  effortFace.position.copy(effortHeadWorld).addScaledVector(effortFacing,.31);
+  effortFace.position.copy(effortHeadWorld).addScaledVector(effortFacing,.54);
   effortFace.position.y+=.035;
  }
 
