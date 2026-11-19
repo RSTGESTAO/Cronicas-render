@@ -16,6 +16,10 @@ export default async function handler(req,res){
  const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
  const approved=[...new Set(['carpinteiro','ferreiro',...approvedProfessions.map(normalize)])];
  const rejected=new Set(rejectedProfessions.map(normalize));
+ const advanced={
+  'alquimista':{starter:'coletor de ervas',requirements:['coleta de ervas','conhecimento de preparo e propriedades de plantas','aprendizado de técnicas de alquimia']},
+  'arquiteto':{starter:'construtor',requirements:['experiência em construção','leitura e elaboração de projetos','conhecimento de estruturas e materiais']}
+ };
  const instructions=[
  'Você interpreta comentários de jogadores de Crônicas dos Pioneiros em português brasileiro.',
  'Extraia nome e profissão informados, sem inventar informações. Profissões são livres: reconheça profissões reais ou de fantasia.',
@@ -46,12 +50,13 @@ export default async function handler(req,res){
    if(!validName)nextStep='ask_name';
    else if(!profession)nextStep='ask_profession';
    else if(kind==='combat_class'||kind==='social_role'){nextStep='clarify_profession';professionStatus='not_a_profession'}
+   else if(advanced[profession]){nextStep='requires_progression';professionStatus='advanced'}
    else if(rejected.has(profession)){nextStep='profession_rejected';professionStatus='rejected'}
    else if(approved.includes(profession)){nextStep='create';professionStatus='approved'}
    else {nextStep='pending_approval';professionStatus='pending'}
  }
  return res.status(200).json({intent,name,profession,professionKind:kind,professionStatus,
- nextStep,reason:typeof p.reason==='string'?p.reason.slice(0,180):null,
+ nextStep,progression:advanced[profession]||null,reason:typeof p.reason==='string'?p.reason.slice(0,180):null,
  simulated:true,characterCreated:false,approvalPersisted:false});
  }catch{return res.status(502).json({error:'interpretation_failed'})}
 }
