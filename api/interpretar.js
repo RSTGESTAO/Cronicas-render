@@ -51,11 +51,17 @@ export default async function handler(req, res) {
     if (!allowed.includes(parsed.next_step)) throw new Error('invalid_ai_response');
     const name = typeof parsed.name === 'string' ? parsed.name.trim() : null;
     const profession = typeof parsed.profession === 'string' ? parsed.profession.toLowerCase().trim() : null;
-    let nextStep = parsed.next_step;
-    if (nextStep === 'create') {
-      if (!name || !/^[\\p{L}\\p{N} ]{3,16}$/u.test(name)) nextStep = 'ask_name';
-      else if (!['carpinteiro','ferreiro'].includes(profession)) nextStep = 'ask_valid_profession';
-    }
+    // A IA extrai os campos; o servidor decide o próximo passo por regras verificáveis.
+    const isRegistration = ['register','reply'].includes(parsed.intent) ||
+      Boolean(pendingName || pendingProfession);
+    const validName = Boolean(name && /^[\p{L}\p{N} ]{3,16}$/u.test(name));
+    const validProfession = ['carpinteiro','ferreiro'].includes(profession);
+    let nextStep;
+    if (!isRegistration) nextStep = parsed.intent === 'unclear' ? 'clarify' : 'ignore';
+    else if (!validName) nextStep = 'ask_name';
+    else if (!profession) nextStep = 'ask_profession';
+    else if (!validProfession) nextStep = 'ask_valid_profession';
+    else nextStep = 'create';
     return res.status(200).json({
       intent: parsed.intent, name, profession, nextStep,
       reply: typeof parsed.reply === 'string' ? parsed.reply.slice(0, 400) : null,
