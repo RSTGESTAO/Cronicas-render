@@ -17,7 +17,7 @@ small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;backg
 </style></head><body>
 <header><h1>⚒️ Crônicas dos Pioneiros</h1><span class="tag">Laboratório de IA · Ambiente de testes</span></header>
 <main>
-<p>Simule comentários do Instagram e receba uma interpretação da API real. Nada será enviado ao Instagram nem salvo no jogo.</p>
+<p>Simule comentários do Instagram e receba uma interpretação da API real. Nada será enviado ao Instagram. Ao confirmar um personagem, uma ficha de testes será salva neste navegador, sem cadastro real no banco.</p>
 <section class="panel">
 <label for="comment">Comentário do jogador</label>
 <textarea id="comment" maxlength="500" placeholder="Ex.: Sou Globerz, um ferreiro.">Sou Globerz, um ferreiro.</textarea>
@@ -31,13 +31,13 @@ small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;backg
 <div id="reply" class="muted">Aguardando comentário.</div>
 <details><summary>Ver dados técnicos</summary><pre id="json">{}</pre></details>
 </section>
-<section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
+<section class="panel" id="characterPanel" hidden><h2>🧑‍🚀 Criar personagem de testes</h2><p id="characterHint">Confirme o nome e a profissão inicial antes de abrir a ficha.</p><label for="characterName">Nome do personagem</label><input id="characterName" maxlength="16"><label for="characterProfession">Profissão inicial</label><select id="characterProfession" style="width:100%;padding:12px;border-radius:9px;background:#101827;color:white;border:1px solid #52617b"></select><div class="buttons"><button id="createCharacter">🌱 Criar personagem e abrir ficha</button></div><p id="characterMessage" role="status"></p></section><section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
 <section class="panel"><h2>🛡️ Profissões pendentes (simulação)</h2><p>Aprovações desta sessão não são gravadas no banco.</p><div id="proposals"></div><h3>Profissões aprovadas</h3><p id="approved"></p></section></main>
 <script>
 const el=id=>document.getElementById(id);
 let pendingName=null,pendingProfession=null;
 const proposals=new Map(),approved=new Set(['carpinteiro','ferreiro']),rejected=new Set(),rejectionReasons=new Map();
-const send=el('send'),status=el('status');
+const send=el('send'),status=el('status');let candidate=null;
 function render(){
  el('proposals').replaceChildren();
  if(!proposals.size){const p=document.createElement('p');p.textContent='Nenhuma proposta pendente.';el('proposals').append(p)}
@@ -103,19 +103,31 @@ send.onclick=async()=>{
  if(!response.ok)throw new Error(result.error==='openai_not_configured'?'Chave da OpenAI não configurada.':result.error==='ai_provider_error'?'Erro da OpenAI (HTTP '+result.providerStatus+').':result.error||'Falha');
  el('summary').textContent='Intenção: '+result.intent+' | Nome: '+(result.name||'não informado')+' | Profissão: '+(result.profession||'não informada')+' | Situação: '+result.professionStatus+' | Próximo passo: '+result.nextStep;
  if(result.nextStep==='start_progression')el('summary').textContent+=' | Profissão inicial: '+result.initialProfession+' | Objetivo: '+result.professionGoal;
- const reply=suggested(result);el('reply').textContent=reply;el('json').textContent=JSON.stringify(result,null,2);
+ const reply=suggested(result);el('reply').textContent=reply;
+ candidate=null;el('characterPanel').hidden=true;
+ if(['create','start_progression'].includes(result.nextStep)&&result.name){
+  const starters=result.nextStep==='start_progression'?result.starterOptions:[result.profession];
+  if(starters?.length){candidate={name:result.name,goal:result.professionGoal||null};el('characterName').value=result.name;const select=el('characterProfession');select.replaceChildren();for(const p of starters){const option=document.createElement('option');option.value=p;option.textContent=p;select.append(option)}el('characterHint').textContent=result.professionGoal?'Objetivo futuro: '+result.professionGoal+'. Escolha uma das profissões básicas para começar.':'Confirme a profissão básica do personagem.';el('characterPanel').hidden=false;el('characterMessage').textContent=''}
+ }el('json').textContent=JSON.stringify(result,null,2);
  const li=document.createElement('li');li.textContent='Jogador: '+comment+' | IA: '+reply;el('history').append(li);
  if(result.nextStep==='pending_approval'&&result.profession)proposals.set(result.profession,{name:result.name,profession:result.profession});
  if(['ask_name','ask_profession','clarify_profession','pending_approval','requires_progression','profession_rejected'].includes(result.nextStep)){
   pendingName=result.name||pendingName;
   pendingProfession=['clarify_profession','requires_progression','profession_rejected'].includes(result.nextStep)?null:(result.profession||pendingProfession);
  }else{pendingName=null;pendingProfession=null}
- render();status.textContent='Resposta real da API recebida. Nenhum personagem criado.';
+ render();status.textContent='Resposta da IA recebida. Confirme abaixo para criar a ficha de testes.';
  el('comment').value='';el('comment').focus();
  }catch(error){status.textContent='Erro: '+error.message}finally{send.disabled=false}
 };
+el('createCharacter').onclick=()=>{
+ if(!candidate)return;const name=el('characterName').value.trim(),profession=el('characterProfession').value;
+ if(!/^[\\p{L}\\p{N} ]{3,16}$/u.test(name)){el('characterMessage').textContent='Nome deve ter de 3 a 16 caracteres, usando letras, números e espaços.';return}
+ if(!profession){el('characterMessage').textContent='Escolha uma profissão inicial.';return}
+ const character={id:'teste-'+Date.now(),name,profession,goal:candidate.goal,rank:'Aprendiz',level:1,xp:0,skillPoints:1,createdAt:new Date().toISOString(),testOnly:true};
+ try{localStorage.setItem('cronicas_personagem_teste',JSON.stringify(character));location.href='/ficha-personagem.html'}catch(e){el('characterMessage').textContent='Não foi possível salvar a ficha neste navegador.'}
+};
 el('clear').onclick=()=>{
- pendingName=null;pendingProfession=null;proposals.clear();rejectionReasons.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
+ candidate=null;el('characterPanel').hidden=true;pendingName=null;pendingProfession=null;proposals.clear();rejectionReasons.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
  el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
  el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';render();
 };render();
