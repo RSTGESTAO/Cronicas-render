@@ -65,6 +65,17 @@ function suggested(result){
  case 'ask_profession':return 'Qual profissão você deseja exercer? Pode sugerir uma nova!';
  case 'clarify_profession':return 'Essa escolha parece uma classe ou cargo. Qual profissão deseja exercer?';
  case 'profession_rejected':return 'A profissão '+p+' não foi aprovada. Motivo: '+(rejectionReasons.get(p)||'Consulte a administração.')+' Escolha outra profissão.';
+ case 'start_progression':{
+ const paths=[];
+ function walk(node,chain=[]){
+  if(!node)return;
+  const current=[node.profession,...chain];
+  if(!node.alternatives){paths.push(current.join(' → '));return}
+  for(const option of node.alternatives)for(const prerequisite of option.prerequisites||[])walk(prerequisite,current);
+ }
+ walk(result.progression);
+ return '🌱 '+n+', seu sonho de se tornar '+p+' começa hoje! Você iniciará como '+result.initialProfession+'. Com dedicação, prática e novos conhecimentos, poderá seguir o caminho '+paths.join(' OU ')+'. Cada conquista terá seu momento. Bem-vindo à sua jornada!';
+}
  case 'requires_progression':{
  const paths=[];
  function walk(node,chain=[]){
@@ -91,6 +102,7 @@ send.onclick=async()=>{
  const result=await response.json();
  if(!response.ok)throw new Error(result.error==='openai_not_configured'?'Chave da OpenAI não configurada.':result.error==='ai_provider_error'?'Erro da OpenAI (HTTP '+result.providerStatus+').':result.error||'Falha');
  el('summary').textContent='Intenção: '+result.intent+' | Nome: '+(result.name||'não informado')+' | Profissão: '+(result.profession||'não informada')+' | Situação: '+result.professionStatus+' | Próximo passo: '+result.nextStep;
+ if(result.nextStep==='start_progression')el('summary').textContent+=' | Profissão inicial: '+result.initialProfession+' | Objetivo: '+result.professionGoal;
  const reply=suggested(result);el('reply').textContent=reply;el('json').textContent=JSON.stringify(result,null,2);
  const li=document.createElement('li');li.textContent='Jogador: '+comment+' | IA: '+reply;el('history').append(li);
  if(result.nextStep==='pending_approval'&&result.profession)proposals.set(result.profession,{name:result.name,profession:result.profession});
