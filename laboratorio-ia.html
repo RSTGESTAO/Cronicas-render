@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratório de IA | Crônicas dos Pioneiros</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#111827;color:#f5f2eb}
+*{box-sizing:border-box}body{margin:0}header{padding:20px;background:#1e293b;border-bottom:1px solid #34445c}
+main{max-width:780px;margin:auto;padding:22px 16px 60px}h1{font-size:23px;margin:0 0 7px}p{line-height:1.5;color:#bdc8d9}
+.panel{background:#1e293b;border:1px solid #39465b;border-radius:16px;padding:18px;margin:16px 0}
+label{display:block;margin:13px 0 7px;font-weight:650}textarea,input{width:100%;background:#101827;color:white;border:1px solid #52617b;border-radius:9px;padding:12px;font:inherit}textarea{min-height:105px;resize:vertical}
+button{border:0;border-radius:10px;padding:12px 16px;font-weight:750;cursor:pointer;background:#e8b76b;color:#211b12}
+button.secondary{background:#35465f;color:white}button:disabled{opacity:.6;cursor:wait}
+.buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;border-radius:9px;padding:14px;line-height:1.5}
+#status{min-height:25px}#reply{border-left:3px solid #e8b76b;padding:10px 14px;white-space:pre-wrap}
+.history{padding-left:20px}.history li{margin:10px 0;overflow-wrap:anywhere}
+.tag{display:inline-block;background:#314c48;color:#a9ebc4;border-radius:20px;padding:4px 10px;font-size:12px}
+</style></head><body>
+<header><h1>⚒️ Crônicas dos Pioneiros</h1><span class="tag">Laboratório de IA · Ambiente de testes</span></header>
+<main>
+<p>Simule comentários do Instagram e receba uma interpretação da API real. Nada será enviado ao Instagram nem salvo no jogo.</p>
+<section class="panel">
+<label for="comment">Comentário do jogador</label>
+<textarea id="comment" maxlength="500" placeholder="Ex.: Sou Globerz, um ferreiro.">Sou Globerz, um ferreiro.</textarea>
+<div class="buttons"><button id="send">✨ Enviar para a IA</button><button class="secondary" id="clear">Limpar conversa</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+</section>
+<section class="panel">
+<h2>Interpretação da IA</h2>
+<div id="summary" class="muted">Envie um comentário para começar.</div>
+<h3>Resposta sugerida ao jogador</h3>
+<div id="reply" class="muted">Aguardando comentário.</div>
+<details><summary>Ver dados técnicos</summary><pre id="json">{}</pre></details>
+</section>
+<section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
+</main>
+<script>
+const el=id=>document.getElementById(id);
+let pendingName=null,pendingProfession=null;
+const send=el('send'),status=el('status');
+function addHistory(comment,result){
+ const li=document.createElement('li');
+ li.textContent='Jogador: '+comment+' | IA: '+(result.reply||result.nextStep||'Sem resposta');
+ el('history').appendChild(li);
+}
+function suggested(result){
+ if(result.nextStep==='create')return '⚒️ '+result.name+', entendi! Você quer iniciar como aprendiz de '+result.profession+'. Vou verificar a disponibilidade do nome antes do cadastro.';
+ if(result.nextStep==='ask_name')return 'Qual será o nome do seu personagem?';
+ if(result.nextStep==='ask_profession')return 'Qual profissão você deseja exercer?';
+ if(result.nextStep==='ask_valid_profession')return 'Por enquanto, escolha entre carpinteiro e ferreiro.';
+ if(result.nextStep==='ignore')return 'Comentário não relacionado a cadastro.';
+ return 'Pode explicar melhor como deseja iniciar sua jornada?';
+}
+send.addEventListener('click',async()=>{
+ const comment=el('comment').value.trim();
+ if(!comment){status.textContent='Digite um comentário.';return}
+ send.disabled=true;status.textContent='Consultando a API da OpenAI…';
+ try{
+ const response=await fetch('/api/interpretar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment,pendingName,pendingProfession})});
+ const result=await response.json();
+ if(!response.ok)throw new Error(result.error==='openai_not_configured'?'Chave da OpenAI não configurada neste ambiente.':result.error==='ai_provider_error'?'A OpenAI retornou um erro (HTTP '+result.providerStatus+').':result.error==='preview_only'?'Este laboratório funciona apenas na implantação Preview.':result.error||'Falha de comunicação');
+ el('summary').textContent='Intenção: '+(result.intent||'não definida')+' | Nome: '+(result.name||'não informado')+' | Profissão: '+(result.profession||'não informada')+' | Próximo passo: '+result.nextStep;
+ const reply=suggested(result);
+ el('reply').textContent=reply;
+ el('json').textContent=JSON.stringify(result,null,2);
+ addHistory(comment,{reply});
+ if(result.nextStep==='ask_name'||result.nextStep==='ask_profession'||result.nextStep==='ask_valid_profession'){
+ pendingName=result.name||pendingName;
+ pendingProfession=result.nextStep==='ask_valid_profession'?null:(result.profession||pendingProfession);
+ }else if(result.nextStep==='create'||result.nextStep==='ignore'){pendingName=null;pendingProfession=null}
+ status.textContent='Resposta recebida da API. Nenhum personagem foi criado.';
+ el('comment').value='';el('comment').focus();
+ }catch(error){status.textContent='Erro: '+error.message}
+ finally{send.disabled=false}
+});
+el('clear').addEventListener('click',()=>{
+ pendingName=null;pendingProfession=null;el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
+ el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';
+});
+</script></body></html>
