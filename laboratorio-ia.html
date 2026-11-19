@@ -65,7 +65,20 @@ function suggested(result){
  case 'ask_profession':return 'Qual profissão você deseja exercer? Pode sugerir uma nova!';
  case 'clarify_profession':return 'Essa escolha parece uma classe ou cargo. Qual profissão deseja exercer?';
  case 'profession_rejected':return 'A profissão '+p+' não foi aprovada. Motivo: '+(rejectionReasons.get(p)||'Consulte a administração.')+' Escolha outra profissão.';
- case 'requires_progression':return '⚒️ '+n+', '+p+' é uma profissão avançada! Comece como '+result.progression.starter+' e desenvolva: '+result.progression.requirements.join('; ')+'. Assim você poderá desbloquear '+p+' no futuro.';
+ case 'requires_progression':{
+ const paths=[];
+ function walk(node,chain=[]){
+  if(!node)return;
+  const current=[node.profession,...chain];
+  if(!node.alternatives){paths.push(current.join(' → '));return}
+  for(const option of node.alternatives){
+   for(const prerequisite of option.prerequisites||[])walk(prerequisite,current);
+  }
+ }
+ walk(result.progression);
+ const skills=(result.progression?.alternatives||[]).map((a,i)=>'Caminho '+(i+1)+': '+a.skills.join(', ')).join('; ');
+ return '⚒️ '+n+', '+p+' é uma profissão avançada. Você poderá desbloqueá-la seguindo: '+paths.join(' OU ')+'. Conhecimentos necessários: '+skills+'. Escolha uma profissão inicial para começar.';
+}
  case 'ignore':return 'Comentário não relacionado a cadastro.';
  default:return 'Pode explicar melhor sua intenção?';
  }
