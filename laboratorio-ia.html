@@ -36,7 +36,7 @@ small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;backg
 <script>
 const el=id=>document.getElementById(id);
 let pendingName=null,pendingProfession=null;
-const proposals=new Map(),approved=new Set(['carpinteiro','ferreiro']),rejected=new Set();
+const proposals=new Map(),approved=new Set(['carpinteiro','ferreiro']),rejected=new Set(),rejectionReasons=new Map();
 const send=el('send'),status=el('status');
 function render(){
  el('proposals').replaceChildren();
@@ -45,11 +45,13 @@ function render(){
   const div=document.createElement('div');div.className='panel';
   const title=document.createElement('strong');title.textContent=data.profession+' · '+(data.name||'jogador');
   const actions=document.createElement('div');actions.className='buttons';
-  for(const [label,action,cls] of [['Aprovar','approve',''],['Rejeitar','reject','secondary']]){
-   const btn=document.createElement('button');btn.textContent=label;btn.className=cls;
-   btn.onclick=()=>{proposals.delete(key);if(action==='approve'){approved.add(key);rejected.delete(key)}else{rejected.add(key);approved.delete(key)}render();status.textContent='Decisão simulada sobre '+data.profession+'. Não gravada no banco.'};
-   actions.append(btn);
-  }
+  const reason=document.createElement('textarea');reason.placeholder='Motivo obrigatório para rejeição. Explique ao jogador como prosseguir.';reason.rows=2;reason.style.minHeight='65px';
+  const approve=document.createElement('button');approve.textContent='Aprovar';
+  approve.onclick=()=>{proposals.delete(key);approved.add(key);rejected.delete(key);rejectionReasons.delete(key);render();status.textContent='Aprovação simulada. Não gravada no banco.'};
+  const reject=document.createElement('button');reject.textContent='Rejeitar com motivo';reject.className='secondary';
+  reject.onclick=()=>{const explanation=reason.value.trim();if(explanation.length<10){status.textContent='Informe um motivo de pelo menos 10 caracteres.';reason.focus();return}proposals.delete(key);rejected.add(key);approved.delete(key);rejectionReasons.set(key,explanation);render();status.textContent='Rejeição simulada: '+explanation};
+  actions.append(approve,reject);
+  div.append(reason);
   div.append(title,actions);el('proposals').append(div);
  }
  el('approved').textContent=[...approved].join(', ');
@@ -62,7 +64,8 @@ function suggested(result){
  case 'ask_name':return 'Qual será o nome do seu personagem?';
  case 'ask_profession':return 'Qual profissão você deseja exercer? Pode sugerir uma nova!';
  case 'clarify_profession':return 'Essa escolha parece uma classe ou cargo. Qual profissão deseja exercer?';
- case 'profession_rejected':return 'Essa profissão não foi aprovada. Escolha outra.';
+ case 'profession_rejected':return 'A profissão '+p+' não foi aprovada. Motivo: '+(rejectionReasons.get(p)||'Consulte a administração.')+' Escolha outra profissão.';
+ case 'requires_progression':return '⚒️ '+n+', '+p+' é uma profissão avançada! Comece como '+result.progression.starter+' e desenvolva: '+result.progression.requirements.join('; ')+'. Assim você poderá desbloquear '+p+' no futuro.';
  case 'ignore':return 'Comentário não relacionado a cadastro.';
  default:return 'Pode explicar melhor sua intenção?';
  }
@@ -78,16 +81,16 @@ send.onclick=async()=>{
  const reply=suggested(result);el('reply').textContent=reply;el('json').textContent=JSON.stringify(result,null,2);
  const li=document.createElement('li');li.textContent='Jogador: '+comment+' | IA: '+reply;el('history').append(li);
  if(result.nextStep==='pending_approval'&&result.profession)proposals.set(result.profession,{name:result.name,profession:result.profession});
- if(['ask_name','ask_profession','clarify_profession','pending_approval'].includes(result.nextStep)){
+ if(['ask_name','ask_profession','clarify_profession','pending_approval','requires_progression','profession_rejected'].includes(result.nextStep)){
   pendingName=result.name||pendingName;
-  pendingProfession=result.nextStep==='clarify_profession'?null:(result.profession||pendingProfession);
+  pendingProfession=['clarify_profession','requires_progression','profession_rejected'].includes(result.nextStep)?null:(result.profession||pendingProfession);
  }else{pendingName=null;pendingProfession=null}
  render();status.textContent='Resposta real da API recebida. Nenhum personagem criado.';
  el('comment').value='';el('comment').focus();
  }catch(error){status.textContent='Erro: '+error.message}finally{send.disabled=false}
 };
 el('clear').onclick=()=>{
- pendingName=null;pendingProfession=null;proposals.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
+ pendingName=null;pendingProfession=null;proposals.clear();rejectionReasons.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
  el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
  el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';render();
 };render();
