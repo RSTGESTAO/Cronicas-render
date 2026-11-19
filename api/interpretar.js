@@ -42,18 +42,28 @@ export default async function handler(req,res){
  const kind=['profession','combat_class','social_role','unclear'].includes(p.professionKind)?p.professionKind:'unclear';
  const validName=Boolean(name&&/^[\p{L}\p{N} ]{3,16}$/u.test(name));
  const registering=['register','reply'].includes(intent)||Boolean(pendingName||pendingProfession);
+ function startingProfessions(target,visited=new Set()){
+   if(visited.has(target))return [];
+   visited.add(target);
+   const node=PROFESSION_TREE[target];
+   if(!node)return [];
+   if(node.tier===0)return [target];
+   return [...new Set((node.paths||[]).flatMap(path=>path.from.flatMap(parent=>startingProfessions(parent,new Set(visited)))))];
+ }
+ const starters=profession&&PROFESSION_TREE[profession]?.tier>0?startingProfessions(profession):[];
+ const initialProfession=starters[0]||null;
  let nextStep='ignore',professionStatus='none';
  if(registering){
    if(!validName)nextStep='ask_name';
    else if(!profession)nextStep='ask_profession';
    else if(kind==='combat_class'||kind==='social_role'){nextStep='clarify_profession';professionStatus='not_a_profession'}
-   else if(PROFESSION_TREE[profession]?.tier>0){nextStep='requires_progression';professionStatus='advanced'}
+   else if(PROFESSION_TREE[profession]?.tier>0){nextStep='start_progression';professionStatus='advanced'}
    else if(rejected.has(profession)){nextStep='profession_rejected';professionStatus='rejected'}
    else if(PROFESSION_TREE[profession]?.tier===0||approved.includes(profession)){nextStep='create';professionStatus='approved'}
    else {nextStep='pending_approval';professionStatus='pending'}
  }
  return res.status(200).json({intent,name,profession,professionKind:kind,professionStatus,
- nextStep,progression:profession&&PROFESSION_TREE[profession]?.tier>0?getPath(profession):null,reason:typeof p.reason==='string'?p.reason.slice(0,180):null,
+ nextStep,initialProfession:nextStep==='start_progression'?initialProfession:null,professionGoal:nextStep==='start_progression'?profession:null,starterOptions:nextStep==='start_progression'?starters:[],progression:profession&&PROFESSION_TREE[profession]?.tier>0?getPath(profession):null,reason:typeof p.reason==='string'?p.reason.slice(0,180):null,
  simulated:true,characterCreated:false,approvalPersisted:false});
  }catch{return res.status(502).json({error:'interpretation_failed'})}
 }
