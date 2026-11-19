@@ -32,48 +32,63 @@ small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;backg
 <details><summary>Ver dados técnicos</summary><pre id="json">{}</pre></details>
 </section>
 <section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
-</main>
+<section class="panel"><h2>🛡️ Profissões pendentes (simulação)</h2><p>Aprovações desta sessão não são gravadas no banco.</p><div id="proposals"></div><h3>Profissões aprovadas</h3><p id="approved"></p></section></main>
 <script>
 const el=id=>document.getElementById(id);
 let pendingName=null,pendingProfession=null;
+const proposals=new Map(),approved=new Set(['carpinteiro','ferreiro']),rejected=new Set();
 const send=el('send'),status=el('status');
-function addHistory(comment,result){
- const li=document.createElement('li');
- li.textContent='Jogador: '+comment+' | IA: '+(result.reply||result.nextStep||'Sem resposta');
- el('history').appendChild(li);
+function render(){
+ el('proposals').replaceChildren();
+ if(!proposals.size){const p=document.createElement('p');p.textContent='Nenhuma proposta pendente.';el('proposals').append(p)}
+ for(const [key,data] of proposals){
+  const div=document.createElement('div');div.className='panel';
+  const title=document.createElement('strong');title.textContent=data.profession+' · '+(data.name||'jogador');
+  const actions=document.createElement('div');actions.className='buttons';
+  for(const [label,action,cls] of [['Aprovar','approve',''],['Rejeitar','reject','secondary']]){
+   const btn=document.createElement('button');btn.textContent=label;btn.className=cls;
+   btn.onclick=()=>{proposals.delete(key);if(action==='approve'){approved.add(key);rejected.delete(key)}else{rejected.add(key);approved.delete(key)}render();status.textContent='Decisão simulada sobre '+data.profession+'. Não gravada no banco.'};
+   actions.append(btn);
+  }
+  div.append(title,actions);el('proposals').append(div);
+ }
+ el('approved').textContent=[...approved].join(', ');
 }
 function suggested(result){
- if(result.nextStep==='create')return '⚒️ '+result.name+', entendi! Você quer iniciar como aprendiz de '+result.profession+'. Vou verificar a disponibilidade do nome antes do cadastro.';
- if(result.nextStep==='ask_name')return 'Qual será o nome do seu personagem?';
- if(result.nextStep==='ask_profession')return 'Qual profissão você deseja exercer?';
- if(result.nextStep==='ask_valid_profession')return 'Por enquanto, escolha entre carpinteiro e ferreiro.';
- if(result.nextStep==='ignore')return 'Comentário não relacionado a cadastro.';
- return 'Pode explicar melhor como deseja iniciar sua jornada?';
+ const n=result.name||'Pioneiro',p=result.profession||'';
+ switch(result.nextStep){
+ case 'create':return '⚒️ '+n+', a profissão '+p+' está aprovada! Vamos verificar o nome antes do cadastro.';
+ case 'pending_approval':return '⚒️ '+n+', recebemos sua proposta de profissão: '+p+'. Ela aguarda aprovação administrativa.';
+ case 'ask_name':return 'Qual será o nome do seu personagem?';
+ case 'ask_profession':return 'Qual profissão você deseja exercer? Pode sugerir uma nova!';
+ case 'clarify_profession':return 'Essa escolha parece uma classe ou cargo. Qual profissão deseja exercer?';
+ case 'profession_rejected':return 'Essa profissão não foi aprovada. Escolha outra.';
+ case 'ignore':return 'Comentário não relacionado a cadastro.';
+ default:return 'Pode explicar melhor sua intenção?';
+ }
 }
-send.addEventListener('click',async()=>{
- const comment=el('comment').value.trim();
- if(!comment){status.textContent='Digite um comentário.';return}
+send.onclick=async()=>{
+ const comment=el('comment').value.trim();if(!comment){status.textContent='Digite um comentário.';return}
  send.disabled=true;status.textContent='Consultando a API da OpenAI…';
  try{
- const response=await fetch('/api/interpretar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment,pendingName,pendingProfession})});
+ const response=await fetch('/api/interpretar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment,pendingName,pendingProfession,approvedProfessions:[...approved],rejectedProfessions:[...rejected]})});
  const result=await response.json();
- if(!response.ok)throw new Error(result.error==='openai_not_configured'?'Chave da OpenAI não configurada neste ambiente.':result.error==='ai_provider_error'?'A OpenAI retornou um erro (HTTP '+result.providerStatus+').':result.error==='preview_only'?'Este laboratório funciona apenas na implantação Preview.':result.error||'Falha de comunicação');
- el('summary').textContent='Intenção: '+(result.intent||'não definida')+' | Nome: '+(result.name||'não informado')+' | Profissão: '+(result.profession||'não informada')+' | Próximo passo: '+result.nextStep;
- const reply=suggested(result);
- el('reply').textContent=reply;
- el('json').textContent=JSON.stringify(result,null,2);
- addHistory(comment,{reply});
- if(result.nextStep==='ask_name'||result.nextStep==='ask_profession'||result.nextStep==='ask_valid_profession'){
- pendingName=result.name||pendingName;
- pendingProfession=result.nextStep==='ask_valid_profession'?null:(result.profession||pendingProfession);
- }else if(result.nextStep==='create'||result.nextStep==='ignore'){pendingName=null;pendingProfession=null}
- status.textContent='Resposta recebida da API. Nenhum personagem foi criado.';
+ if(!response.ok)throw new Error(result.error==='openai_not_configured'?'Chave da OpenAI não configurada.':result.error==='ai_provider_error'?'Erro da OpenAI (HTTP '+result.providerStatus+').':result.error||'Falha');
+ el('summary').textContent='Intenção: '+result.intent+' | Nome: '+(result.name||'não informado')+' | Profissão: '+(result.profession||'não informada')+' | Situação: '+result.professionStatus+' | Próximo passo: '+result.nextStep;
+ const reply=suggested(result);el('reply').textContent=reply;el('json').textContent=JSON.stringify(result,null,2);
+ const li=document.createElement('li');li.textContent='Jogador: '+comment+' | IA: '+reply;el('history').append(li);
+ if(result.nextStep==='pending_approval'&&result.profession)proposals.set(result.profession,{name:result.name,profession:result.profession});
+ if(['ask_name','ask_profession','clarify_profession','pending_approval'].includes(result.nextStep)){
+  pendingName=result.name||pendingName;
+  pendingProfession=result.nextStep==='clarify_profession'?null:(result.profession||pendingProfession);
+ }else{pendingName=null;pendingProfession=null}
+ render();status.textContent='Resposta real da API recebida. Nenhum personagem criado.';
  el('comment').value='';el('comment').focus();
- }catch(error){status.textContent='Erro: '+error.message}
- finally{send.disabled=false}
-});
-el('clear').addEventListener('click',()=>{
- pendingName=null;pendingProfession=null;el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
- el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';
-});
+ }catch(error){status.textContent='Erro: '+error.message}finally{send.disabled=false}
+};
+el('clear').onclick=()=>{
+ pendingName=null;pendingProfession=null;proposals.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
+ el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
+ el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';render();
+};render();
 </script></body></html>
