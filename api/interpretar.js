@@ -11,7 +11,7 @@ export default async function handler(req,res){
     !Array.isArray(approvedProfessions)||!Array.isArray(rejectedProfessions)||
     approvedProfessions.length>100||rejectedProfessions.length>100||
     [...approvedProfessions,...rejectedProfessions].some(x=>typeof x!=='string'||x.length>60)||
-    (pendingName!==null&&(typeof pendingName!=='string'||pendingName.length>16))||
+    (pendingName!==null&&(typeof pendingName!=='string'||pendingName.length>32))||
     (pendingProfession!==null&&(typeof pendingProfession!=='string'||pendingProfession.length>60)))
    return res.status(400).json({error:'invalid_input'});
  const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
@@ -19,7 +19,7 @@ export default async function handler(req,res){
  const rejected=new Set(rejectedProfessions.map(normalize));
  const instructions=[
  'Você interpreta comentários de jogadores de Crônicas dos Pioneiros em português brasileiro.',
- 'Extraia nome e profissão informados, sem inventar informações. Profissões são livres: reconheça profissões reais ou de fantasia.',
+ 'Extraia o nome EXATO do personagem e a profissão informados, sem inventar informações. Não inclua palavras introdutórias como sou, me chamo, quero ser, nem o nome da profissão no campo name. Preserve acentos e nomes compostos. Profissões são livres: reconheça profissões reais ou de fantasia.',
  'Diferencie profissão produtiva de classe de combate e cargo político; guerreiro é classe, rei é cargo.',
  'Reconheça profissões e sinônimos, incluindo caçador, guarda, domador, pesquisador, jornalista, engenheiro, projetista, mecânico, construtor naval, armeiro, armadureiro, papeleiro, tinteiro, escultor, arquiteta e alquimista.',
  'Use o catálogo oficial disponível na aplicação para classificar a profissão solicitada. Profissões avançadas exigem como padrão duas profissões de origem em Profissional nível 10. Não invente desbloqueios.',
@@ -41,7 +41,7 @@ export default async function handler(req,res){
  const name=typeof p.name==='string'?p.name.trim():null;
  const profession=typeof p.profession==='string'?resolveProfession(p.profession):null;
  const kind=['profession','combat_class','social_role','unclear'].includes(p.professionKind)?p.professionKind:'unclear';
- const validName=Boolean(name&&/^[\p{L}\p{N} ]{3,16}$/u.test(name));
+ const validName=Boolean(name&&/^[\p{L}\p{N}][\p{L}\p{N} .'’\-]{1,30}[\p{L}\p{N}]$/u.test(name));
  const registering=['register','reply'].includes(intent)||Boolean(pendingName||pendingProfession);
  function startingProfessions(target,visited=new Set()){
    if(visited.has(target))return [];
