@@ -146,7 +146,7 @@ el('createCharacter').onclick=()=>{
  if(!candidate)return;const name=el('characterName').value.trim(),profession=el('characterProfession').value;
  if(!/^[\p{L}\p{N}][\p{L}\p{N} .\u0027’\-]{1,30}[\p{L}\p{N}]$/u.test(name)){el('characterMessage').textContent='Use de 3 a 32 caracteres. São aceitos nomes compostos, acentos, apóstrofos e hífens.';return}
  if(!profession){el('characterMessage').textContent='Escolha uma profissão inicial.';return}
- const character={id:'teste-'+Date.now(),name,profession,goal:candidate.goal,rank:'Aprendiz',level:1,xp:0,skillPoints:1,createdAt:new Date().toISOString(),testOnly:true};
+ const character={id:'teste-'+Date.now(),name,profession,goal:candidate.goal,rank:'Aprendiz',level:1,xp:0,skillPoints:1,generalLevel:1,generalXp:0,attributePoints:0,attributes:{forca:10,destreza:10,constituicao:10,inteligencia:10,sabedoria:10,carisma:10},createdAt:new Date().toISOString(),testOnly:true};
  try{localStorage.setItem('cronicas_personagem_teste',JSON.stringify(character));location.href='/ficha-personagem.html'}catch(e){el('characterMessage').textContent='Não foi possível salvar a ficha neste navegador.'}
 };
 el('clear').onclick=()=>{
@@ -160,13 +160,13 @@ el('rollAction').onclick=async()=>{
  const button=el('rollAction');button.disabled=true;el('rollStatus').textContent='Interpretando ação e rolando D20 no servidor...';
  try{
   let character=null;try{character=JSON.parse(localStorage.getItem('cronicas_personagem_teste')||'null')}catch{}
-  const profile=character?.testOnly?{profession:character.profession,level:character.level}:{};
+  const profile=character?.testOnly?{profession:character.profession,level:character.level,generalLevel:character.generalLevel,attributes:character.attributes}:{};
   const response=await fetch('/api/rolar-acao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment,character:profile})});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Falha na rolagem');
   el('rollResult').hidden=false;
   el('rollTitle').textContent=(result.success?'🌟 ':'💥 ')+result.outcome.replaceAll('_',' ').toUpperCase();
   el('rollSummary').textContent='🎲 D20: '+result.d20+' + '+result.bonus+' = '+result.total+' | Dificuldade: '+result.dc+' ('+result.difficulty+')';
-  el('rollModifiers').textContent='Profissão relacionada: '+(result.professionSuggested||'não identificada')+' | Habilidade: '+result.skill+' | Bônus de nível: +'+result.levelBonus+' | Afinidade: +'+result.affinityBonus;
+  el('rollModifiers').textContent='Profissão relacionada: '+(result.professionSuggested||'não identificada')+' | Habilidade: '+result.skill+' | Bônus de nível: +'+result.levelBonus+' | Afinidade: +'+result.affinityBonus+' | Atributo ('+result.attributeKey+'): '+(result.attributeBonus>=0?'+':'')+result.attributeBonus;
   el('rollDescription').textContent='Ação: '+result.action+'. '+result.reason+' • Resultado apenas demonstrativo, sem alterar o personagem.';
   el('rollJson').textContent=JSON.stringify(result,null,2);
   el('rollStatus').textContent='Rolagem concluída no servidor.';
