@@ -31,12 +31,35 @@ small,.muted{color:#b6c2d5}pre{white-space:pre-wrap;overflow-wrap:anywhere;backg
 <div id="reply" class="muted">Aguardando comentário.</div>
 <details><summary>Ver dados técnicos</summary><pre id="json">{}</pre></details>
 </section>
-<section class="panel" id="characterPanel" hidden><h2>🧑‍🚀 Criar personagem de testes</h2><p id="characterHint">Confirme o nome e a profissão inicial antes de abrir a ficha.</p><label for="characterName">Nome do personagem</label><input id="characterName" maxlength="32"><label for="characterProfession">Profissão inicial</label><select id="characterProfession" style="width:100%;padding:12px;border-radius:9px;background:#101827;color:white;border:1px solid #52617b"></select><div class="buttons"><button id="createCharacter">🌱 Criar personagem e abrir ficha</button></div><p id="characterMessage" role="status"></p></section><section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
+<section class="panel" id="characterPanel" hidden><h2>🧑‍🚀 Criar personagem de testes</h2><p id="characterHint">Confirme o nome e a profissão inicial antes de abrir a ficha.</p><label for="characterName">Nome do personagem</label><input id="characterName" maxlength="32"><label for="characterProfession">Profissão inicial</label><select id="characterProfession" style="width:100%;padding:12px;border-radius:9px;background:#101827;color:white;border:1px solid #52617b"></select><div class="buttons"><button id="createCharacter">🌱 Criar personagem e abrir ficha</button></div><p id="characterMessage" role="status"></p></section><section class="panel"><h2>🌌 Sistema de Profissões</h2><p>Catálogo compartilhado com a IA. Profissões básicas podem iniciar no nível Aprendiz 1; as avançadas exigem Profissional 10 em cada requisito. Caminhos marcados como provisórios aguardam aprovação.</p><label for="professionSearch">Buscar profissão</label><input id="professionSearch" placeholder="Ex.: Alquimista, Engenheiro, Guarda"><div class="buttons"><button class="secondary" id="filterAll">Todas</button><button class="secondary" id="filterBasic">Básicas</button><button class="secondary" id="filterAdvanced">Avançadas</button></div><p id="catalogCount" class="muted">Carregando profissões...</p><div id="catalog" style="max-height:380px;overflow:auto"></div><p><a href="/galaxia-profissoes.html" style="color:#f1ce8e">🪐 Explorar a Galáxia de Profissões</a></p></section><section class="panel"><h2>Histórico desta sessão</h2><p class="muted">O histórico fica apenas nesta página enquanto ela estiver aberta.</p><ol id="history" class="history"></ol></section>
 <section class="panel"><h2>🛡️ Profissões pendentes (simulação)</h2><p>Aprovações desta sessão não são gravadas no banco.</p><div id="proposals"></div><h3>Profissões aprovadas</h3><p id="approved"></p></section></main>
 <script>
 const el=id=>document.getElementById(id);
 let pendingName=null,pendingProfession=null;
-const proposals=new Map(),approved=new Set(['carpinteiro','ferreiro']),rejected=new Set(),rejectionReasons=new Map();
+const proposals=new Map(),approved=new Set(),rejected=new Set(),rejectionReasons=new Map();
+let professionCatalog=[],professionFilter='all';
+const normalize=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+function renderCatalog(){
+ const q=normalize(el('professionSearch').value);
+ const items=professionCatalog.filter(p=>(professionFilter==='all'||(professionFilter==='basic'?p.tier===0:p.tier>0))&&(normalize(p.name).includes(q)||(p.aliases||[]).some(a=>normalize(a).includes(q))));
+ el('catalogCount').textContent=items.length+' de '+professionCatalog.length+' profissões • '+professionCatalog.filter(p=>p.tier===0).length+' básicas • '+professionCatalog.filter(p=>p.tier>0).length+' avançadas';
+ el('catalog').replaceChildren();
+ for(const p of items){
+  const div=document.createElement('div');div.style.cssText='padding:10px;border:1px solid #45566e;border-radius:10px;margin:7px 0;background:#142238';
+  const title=document.createElement('strong');title.textContent=(p.tier?'🔒 ':'🌱 ')+p.name;
+  const detail=document.createElement('p');detail.style.margin='5px 0';detail.textContent=p.tier?'Requisitos: '+(p.prerequisites||[]).map(path=>path.professions.join(' + ')).join(' ou ')+' (Profissional 10 em cada)'+(p.provisional?' • combinação provisória':''):'Profissão básica • disponível na criação';
+  const btn=document.createElement('button');btn.className='secondary';btn.textContent='Testar com a IA';btn.onclick=()=>{el('comment').value='Meu nome é Globerz e quero ser '+p.name+'.';el('comment').focus();window.scrollTo({top:0,behavior:'smooth'})};
+  div.append(title,detail,btn);el('catalog').append(div)
+ }
+}
+async function loadCatalog(){
+ try{const response=await fetch('/api/profissoes',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();professionCatalog=data.professions||[];approved.clear();for(const p of professionCatalog)if(p.tier===0)approved.add(p.name);renderCatalog();render()}
+ catch(e){el('catalogCount').textContent='Falha ao carregar catálogo: '+e.message}
+}
+el('professionSearch').oninput=renderCatalog;
+el('filterAll').onclick=()=>{professionFilter='all';renderCatalog()};
+el('filterBasic').onclick=()=>{professionFilter='basic';renderCatalog()};
+el('filterAdvanced').onclick=()=>{professionFilter='advanced';renderCatalog()};
 const send=el('send'),status=el('status');let candidate=null;
 function render(){
  el('proposals').replaceChildren();
@@ -127,8 +150,8 @@ el('createCharacter').onclick=()=>{
  try{localStorage.setItem('cronicas_personagem_teste',JSON.stringify(character));location.href='/ficha-personagem.html'}catch(e){el('characterMessage').textContent='Não foi possível salvar a ficha neste navegador.'}
 };
 el('clear').onclick=()=>{
- candidate=null;el('characterPanel').hidden=true;pendingName=null;pendingProfession=null;proposals.clear();rejectionReasons.clear();approved.clear();approved.add('carpinteiro');approved.add('ferreiro');rejected.clear();
+ candidate=null;el('characterPanel').hidden=true;pendingName=null;pendingProfession=null;proposals.clear();rejectionReasons.clear();approved.clear();for(const p of professionCatalog)if(p.tier===0)approved.add(p.name);rejected.clear();
  el('history').replaceChildren();el('summary').textContent='Envie um comentário para começar.';
  el('reply').textContent='Aguardando comentário.';el('json').textContent='{}';status.textContent='Conversa reiniciada.';el('comment').value='';render();
-};render();
+};render();loadCatalog();
 </script></body></html>
