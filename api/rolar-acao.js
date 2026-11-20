@@ -37,11 +37,15 @@ function compute(input,profile){
  // Protótipo: nível concede até +5; afinidade com profissão +2. Equipamento não concede bônus sem inventário verificado.
  const levelBonus=own?Math.min(5,Math.floor((level-1)/10)):0;
  const affinityBonus=own&&profession===own?2:0;
- const bonus=levelBonus+affinityBonus;
+ const attrs=profile.attributes&&typeof profile.attributes==='object'?profile.attributes:{};
+ const attributeKey=({mineração:'forca',madeira:'forca',construção:'forca',metalurgia:'forca',caça:'destreza',pesca:'destreza',exploração:'destreza',artesanato:'destreza',coleta:'sabedoria',cuidado:'sabedoria',criação:'sabedoria',agricultura:'sabedoria',pesquisa:'inteligencia',culinária:'inteligencia',comércio:'carisma',defesa:'constituicao'})[skill]||'sabedoria';
+ const rawAttr=attrs[attributeKey];const attrValue=Number.isInteger(rawAttr)?clamp(rawAttr,1,100):10;
+ const attributeBonus=clamp(Math.floor((attrValue-10)/2),-5,10);
+ const bonus=levelBonus+affinityBonus+attributeBonus;
  const d20=randomInt(1,21),dc=DIFFICULTIES[difficulty],total=d20+bonus;
  const critical=d20===20?'sucesso_critico':d20===1?'falha_critica':null;
  const success=d20===20||(d20!==1&&total>=dc);
- return {action:String(input.action||'').slice(0,180),skill,professionSuggested:profession,professionUsed:own,rankLevel:level,difficulty,dc,d20,levelBonus,affinityBonus,bonus,total,critical,success,outcome:critical||(success?'sucesso':'falha'),reason:String(input.reason||'').slice(0,180),simulation:true,resourcesChanged:false,xpAwarded:0,characterUpdated:false};
+ return {action:String(input.action||'').slice(0,180),skill,professionSuggested:profession,professionUsed:own,rankLevel:level,difficulty,dc,d20,levelBonus,affinityBonus,attributeKey,attributeValue:attrValue,attributeBonus,bonus,total,critical,success,outcome:critical||(success?'sucesso':'falha'),reason:String(input.reason||'').slice(0,180),simulation:true,resourcesChanged:false,xpAwarded:0,characterUpdated:false};
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
@@ -52,6 +56,7 @@ export default async function handler(req,res){
  const profile=character&&typeof character==='object'&&!Array.isArray(character)?character:{};
  if(profile.profession!==undefined&&(typeof profile.profession!=='string'||profile.profession.length>60))return res.status(400).json({error:'invalid_character'});
  if(profile.level!==undefined&&(!Number.isInteger(profile.level)||profile.level<1||profile.level>50))return res.status(400).json({error:'invalid_level'});
+ if(profile.attributes!==undefined&&(!profile.attributes||typeof profile.attributes!=='object'||Array.isArray(profile.attributes)||Object.keys(profile.attributes).length>6||Object.values(profile.attributes).some(v=>!Number.isInteger(v)||v<1||v>100)))return res.status(400).json({error:'invalid_attributes'});
  const key=process.env.OPENAI_API_KEY;
  if(!key)return res.status(503).json({error:'openai_not_configured'});
  try{
